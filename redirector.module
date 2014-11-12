@@ -4,3 +4,63 @@
  * @file
  * A module that acts as a central point for the redirections on the site.
  */
+
+/**
+ * Implements hook_menu().
+ */
+function redirector_menu() {
+  $items['admin/config/system/redirector'] = array(
+    'type' => MENU_NORMAL_ITEM,
+    'title' => 'Redirector',
+    // Maybe we should create another permission.
+    'access arguments' => array('administer site'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('redirector_admin_components_form'),
+    'file' => 'redirector.admin.inc',
+  );
+  $items['admin/config/system/redirector/components'] = array(
+    'type' => MENU_DEFAULT_LOCAL_TASK,
+    'title' => 'Components',
+  );
+  $items['admin/config/system/redirector/rules'] = array(
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'Rules',
+    'page callback' => 'redirector_admin_rules_page',
+    'access arguments' => array('administer site'),
+    'file' => 'redirector.admin.inc',
+  );
+  return $items;
+}
+
+/**
+ * Returns an array with all the available components.
+ */
+function redirector_get_all_components() {
+  // @todo: maybe cache this if used intensively. And if cached, the cache key
+  // must contain the langauge, because we use t() in the title of the
+  // components.
+  $components = &drupal_static(__FUNCTION__);
+  if (is_null($components)) {
+    $components = module_invoke_all('redirector_components');
+    // @todo: invoke an alter if needed.
+  }
+  return $components;
+}
+
+/**
+ * Implements hook_redirector_components().
+ *
+ * @todo: document this hook.
+ */
+function redirector_redirector_components() {
+  return array(
+    'language' => array(
+      'class' => 'RedirectorComponentLanguage',
+      'title' => t('Language'),
+    ),
+    'country' => array(
+      'class' => 'RedirectorComponentCountry',
+      'title' => t('Country'),
+    ),
+  );
+}
