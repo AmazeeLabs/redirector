@@ -1,0 +1,4 @@
+name = Redirector
+description = A module that acts as a central point for the redirections on the site.
+core = 7.x
+package = Redirector

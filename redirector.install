@@ -1,0 +1,45 @@
+<?php
+
+/**
+ * @file
+ *  Install file for the redirector module.
+ */
+
+/**
+ * Implements hook_schema().
+ */
+function redirector_schema() {
+  $schema['redirector_rules'] = array(
+    'description' => 'Stores the redirect rules.',
+    'fields' => array(
+      'rid' => array(
+        'description' => 'The primary identifier for a rule.',
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'title' => array(
+        'description' => 'A title for the rule.',
+        'type' => 'varchar',
+        'length' => 1024,
+        'not null' => TRUE,
+        'default' => '',
+      ),
+      'weight' => array(
+        'description' => 'The Unix timestamp the test was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+      'created' => array(
+        'description' => 'The Unix timestamp the test was created.',
+        'type' => 'int',
+        'not null' => TRUE,
+        'default' => 0,
+      ),
+    ),
+    'primary key' => array('rid'),
+  );
+  // @todo: add the special fields to the schema.
+  return $schema;
+}
