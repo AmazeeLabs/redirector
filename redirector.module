@@ -5,6 +5,21 @@
  * A module that acts as a central point for the redirections on the site.
  */
 
+function redirector_entity_info() {
+  $return = array(
+    'redirector_rule' => array(
+      'label' => t('Redirector'),
+      'controller class' => 'RedirectorEntityController',
+      'base table' => 'redirector_rules',
+      'entity keys' => array(
+        'id' => 'rid',
+        'label' => 'title',
+      ),
+    ),
+  );
+  return $return;
+}
+
 /**
  * Implements hook_menu().
  */
@@ -33,6 +48,16 @@ function redirector_menu() {
 }
 
 /**
+ * Loads a single redirector rule by its id.
+ *
+ * @param int $rid
+ *  The rule id.
+ */
+function redirector_rule_load($rid) {
+  return entity_load_single('redirector_rule', $rid);
+}
+
+/**
  * Returns an array with all the available components.
  */
 function redirector_get_all_components() {
@@ -48,6 +73,32 @@ function redirector_get_all_components() {
 }
 
 /**
+ * Returns an array with the active components.
+ */
+function redirector_get_active_components() {
+  return variable_get('redirector_components', array());
+}
+
+/**
+ * Creates a component object based on a component id.
+ *
+ * @param string $component_id
+ *  The id of the component.
+ *
+ * @return RedirectorComponentLanguage
+ *  The returned result is actually any class based on the
+ *  RedirectorComponentInterface.
+ */
+function redirector_get_component($component_id) {
+  $all_components = redirector_get_all_components();
+  $component = FALSE;
+  if (class_exists($all_components[$component_id]['class'])) {
+    $component = new $all_components[$component_id]['class']();
+  }
+  return $component;
+}
+
+/**
  * Implements hook_redirector_components().
  *
  * @todo: document this hook.
@@ -56,11 +107,9 @@ function redirector_redirector_components() {
   return array(
     'language' => array(
       'class' => 'RedirectorComponentLanguage',
-      'title' => t('Language'),
     ),
     'country' => array(
       'class' => 'RedirectorComponentCountry',
-      'title' => t('Country'),
     ),
   );
 }

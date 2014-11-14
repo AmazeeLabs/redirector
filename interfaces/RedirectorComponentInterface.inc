@@ -6,10 +6,32 @@
  */
 
 interface RedirectorComponentInterface {
+
+  /**
+   * Returns the title of the component.
+   */
+  public function getTitle();
+
   /**
    * Returns an array with the name of the columns used to store the data for
    * this component in the storage (database).
    */
   public function getStorageColumns();
+
+  /**
+   * Checks if the component is of a specific type.
+   *
+   * @param string $type
+   *  The name of the type. For example: 'must_match_restriction'
+   */
+  public function isOfType($type);
+
+  /**
+   * Returns an array with all the options that this component can have.
+   *
+   * This can be used for example on an admin form to show all the values that
+   * this component can have inside a redirector rule.
+   */
+  public function getAvailableOptions($column_name = NULL);
 
 }

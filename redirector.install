@@ -40,6 +40,23 @@ function redirector_schema() {
     ),
     'primary key' => array('rid'),
   );
+  $active_components = redirector_get_active_components();
+  $all_components = redirector_get_all_components();
+  foreach ($active_components as $key => $component) {
+    $component_object = redirector_get_component($key);
+    if (!empty($component_object)) {
+      $columns = $component_object->getStorageColumns();
+      foreach ($columns as $column_name) {
+        $schema['redirector_rules']['fields'][$column_name] = array(
+          'description' => 'Column for ' . $all_components[$key]['title'],
+          'type' => 'varchar',
+          'length' => 128,
+          'not null' => TRUE,
+          'default' => '',
+        );
+      }
+    }
+  }
   // @todo: add the special fields to the schema.
   return $schema;
 }

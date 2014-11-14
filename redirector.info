@@ -4,4 +4,7 @@ core = 7.x
 package = Redirector
 
 files[] = interfaces/RedirectorComponentInterface.inc
+files[] = classes/RedirectorComponent.inc
 files[] = classes/RedirectorComponentLanguage.inc
+files[] = classes/RedirectorComponentCountry.inc
+files[] = controllers/RedirectorEntityController.inc
