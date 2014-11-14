@@ -21,10 +21,22 @@ function redirector_entity_info() {
 }
 
 /**
+ * Implements hook_theme().
+ */
+function redirector_theme() {
+  return array(
+    'redirector_current_rules_form' => array(
+      'render element' => 'form',
+    ),
+  );
+}
+
+/**
  * Implements hook_menu().
  */
 function redirector_menu() {
-  $items['admin/config/system/redirector'] = array(
+  $path = redirector_get_admin_path();
+  $items[$path] = array(
     'type' => MENU_NORMAL_ITEM,
     'title' => 'Redirector',
     // Maybe we should create another permission.
@@ -33,14 +45,30 @@ function redirector_menu() {
     'page arguments' => array('redirector_admin_components_form'),
     'file' => 'redirector.admin.inc',
   );
-  $items['admin/config/system/redirector/components'] = array(
+  $items[$path. '/components'] = array(
     'type' => MENU_DEFAULT_LOCAL_TASK,
     'title' => 'Components',
   );
-  $items['admin/config/system/redirector/rules'] = array(
+  $items[$path . '/rules'] = array(
     'type' => MENU_LOCAL_TASK,
     'title' => 'Rules',
     'page callback' => 'redirector_admin_rules_page',
+    'access arguments' => array('administer site'),
+    'file' => 'redirector.admin.inc',
+  );
+  $items[$path . '/rules/edit/%redirector_rule'] = array(
+    'type' => MENU_CALLBACK,
+    'title' => 'Edit rule',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('redirector_admin_add_edit_rule_form', 6),
+    'access arguments' => array('administer site'),
+    'file' => 'redirector.admin.inc',
+  );
+  $items[$path . '/rules/delete/%redirector_rule'] = array(
+    'type' => MENU_CALLBACK,
+    'title' => 'Delete rule',
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('redirector_admin_delete_rule_confirm', 6),
     'access arguments' => array('administer site'),
     'file' => 'redirector.admin.inc',
   );
@@ -55,6 +83,51 @@ function redirector_menu() {
  */
 function redirector_rule_load($rid) {
   return entity_load_single('redirector_rule', $rid);
+}
+
+/**
+ * Loads all the rules.
+ */
+function redirector_rule_load_multiple($conditions = array()) {
+  // For the moment we use the entity_load() but we may need a custom query in
+  // the future. Maybe one where we directly sort the results.
+  $rules = entity_load('redirector_rule', FALSE, $conditions);
+  uasort($rules, '_redirector_sort_callback');
+  return $rules;
+}
+
+/**
+ * Sort callback for a set of redirector objects.
+ */
+function _redirector_sort_callback($a, $b) {
+  return $a->weight < $b->weight ? -1 : 1;
+}
+
+/**
+ * Helper function to return the link to edit a rule.
+ *
+ * @param int $rid
+ *  The rule id.
+ */
+function redirector_edit_rule_link($rid) {
+  return 'admin/config/system/redirector/rules/edit/' . $rid;
+}
+
+/**
+ * Helper function to return the link to edit a rule.
+ *
+ * @param int $rid
+ *  The rule id.
+ */
+function redirector_delete_rule_link($rid) {
+  return 'admin/config/system/redirector/rules/delete/' . $rid;
+}
+
+/**
+ * Helper function to return the admin path.
+ */
+function redirector_get_admin_path() {
+  return 'admin/config/system/redirector';
 }
 
 /**
@@ -74,9 +147,17 @@ function redirector_get_all_components() {
 
 /**
  * Returns an array with the active components.
+ *
+ * @return array RedirectorComponent
  */
 function redirector_get_active_components() {
-  return variable_get('redirector_components', array());
+  $components = variable_get('redirector_components', array());
+  if (!empty($components)) {
+    foreach ($components as $key => $name) {
+      $components[$key] = redirector_get_component($key);
+    }
+  }
+  return $components;
 }
 
 /**
@@ -85,9 +166,7 @@ function redirector_get_active_components() {
  * @param string $component_id
  *  The id of the component.
  *
- * @return RedirectorComponentLanguage
- *  The returned result is actually any class based on the
- *  RedirectorComponentInterface.
+ * @return RedirectorComponent
  */
 function redirector_get_component($component_id) {
   $all_components = redirector_get_all_components();
