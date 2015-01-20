@@ -44,7 +44,7 @@ abstract class RedirectorComponent implements RedirectorComponentInterface {
       if ($value[$column_name] === '--any--') {
         continue;
       }
-      // If we find at least one column that do not match, then we break here.
+      // If we find at least one column that does not match, then we break here.
       if ($value[$column_name] != $current_value[$column_name]) {
         $match = FALSE;
         break;

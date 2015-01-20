@@ -82,7 +82,7 @@ function redirector_admin_rules_page() {
  * Form constructor for adding/editing a rule.
  */
 function redirector_admin_add_edit_rule_form($form, &$form_state, $rule = NULL) {
-  $form['title'] = array(
+  $rule_form['title'] = array(
     '#type' => 'textfield',
     '#title' => t('Title'),
     '#default_value' => !empty($rule) ? $rule->title : '',
@@ -90,7 +90,7 @@ function redirector_admin_add_edit_rule_form($form, &$form_state, $rule = NULL) 
   );
   $active_components = redirector_get_active_components();
   if (!empty($active_components)) {
-    $form['components'] = array(
+    $rule_form['components'] = array(
       '#type' => 'fieldset',
       '#title' => t('Components'),
     );
@@ -110,17 +110,17 @@ function redirector_admin_add_edit_rule_form($form, &$form_state, $rule = NULL) 
           $options['--any--'] = t('Any');
           $options = array_reverse($options, TRUE);
         }
-        $form['components'][$column_name] = array(
+        $rule_form['components'][$column_name] = array(
           '#type' => !empty($options) ? 'select' : 'textfield',
           '#title' => $component->getTitle() . ' - (' . $column_name . ')',
           '#default_value' => !empty($rule) ? $rule->{$column_name} : '',
         );
         if (!empty($options)) {
-          $form['components'][$column_name]['#options'] = $options;
+          $rule_form['components'][$column_name]['#options'] = $options;
         }
       }
     }
-    $form['components']['must_match'] = array(
+    $rule_form['components']['must_match'] = array(
       '#type' => 'checkboxes',
       '#title' => t('Components that must match the rule'),
       '#description' => t('Select the components that must match when checking a rule for redirect. The ones which may not match are still used to find the best redirect URL when there are several possibilities.'),
@@ -129,15 +129,25 @@ function redirector_admin_add_edit_rule_form($form, &$form_state, $rule = NULL) 
     );
   }
   if (!empty($rule)) {
-    $form['rid'] = array(
+    $rule_form['rid'] = array(
       '#type' => 'value',
       '#value' => $rule->rid,
     );
   }
-  $form['submit'] = array(
+  $rule_form['submit'] = array(
     '#type' => 'submit',
     '#value' => t('Submit'),
   );
+  if (!empty($rule)) {
+    $form = $rule_form;
+  }
+  else {
+    $form['rule_form'] = $rule_form;
+    $form['rule_form']['#type'] = 'fieldset';
+    $form['rule_form']['#title'] = t('Add a rule');
+    $form['rule_form']['#collapsible'] = TRUE;
+    $form['rule_form']['#collapsed'] = TRUE;
+  }
   return $form;
 }
 
@@ -178,10 +188,13 @@ function redirector_admin_add_edit_rule_form_submit(&$form, &$form_state) {
 function redirector_current_rules_form($form, &$form_state) {
   $active_components = redirector_get_active_components();
   $header = array('title' => t('Title'));
-  foreach ($active_components as $component) {
+  $components_options = array();
+  foreach ($active_components as $component_key => $component) {
     $columns = $component->getStorageColumns();
     foreach ($columns as $column_name) {
       $header[$column_name] = $component->getTitle() . ' - (' . $column_name . ')';
+      $components_options[$column_name] = $component->getAvailableOptions($column_name);
+      $component_columns[$column_name] = $component_key;
     }
   }
   $header['actions'] = t('Actions');
@@ -201,11 +214,16 @@ function redirector_current_rules_form($form, &$form_state) {
         $row[] = implode(' | ', $actions);
       }
       else {
-        $must_match = $no;
-        if (!empty($rule->must_match[$key])) {
-          $must_match = $yes;
+        $value = $rule->{$key};
+        if (!empty($component_columns[$key])) {
+          $must_match = $no;
+          if (!empty($rule->must_match[$component_columns[$key]])) {
+            $must_match = $yes;
+          }
+          $value = isset($components_options[$key][$rule->{$key}]) ? $components_options[$key][$value] : $value;
+          $value = $value . ' (' . t('Must match: !must_match', array('!must_match' => $must_match)) . ')';
         }
-        $row[] = $rule->{$key} . ' (' . t('Must match: !must_match', array('!must_match' => $must_match)) . ')';
+        $row[] = $value;
       }
     }
     $rows[$rule->rid] = array('data' => $row, 'class' => array('draggable'));

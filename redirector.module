@@ -302,7 +302,7 @@ function redirector_redirector_components() {
     ),
     'country' => array(
       'class' => 'RedirectorComponentCountry',
-      'weight' => 1,
+      'weight' => 10,
     ),
   );
 }
