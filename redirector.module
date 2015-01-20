@@ -96,23 +96,33 @@ function redirector_init() {
       }
     }
   }
-
-  redirector_rule_redirect($redirect_rule);
+  if (!empty($redirect_rule)) {
+    redirector_rule_redirect($redirect_rule);
+  }
 }
 
 /**
  * Makes a redirect based on the rule.
  */
-function redirector_rule_redirect($redirect_rule) {
+function redirector_rule_redirect($redirect_rule, $components = array()) {
   $url = $_GET['q'];
-  $query_params = drupal_get_query_parameters();
+  $options['query'] = drupal_get_query_parameters();;
   // Unset the destination from the parameter to make sure we will not be
   // redirected to it by the drupal_goto().
   if (isset($_GET['destination'])) {
     unset($_GET['destination']);
   }
-  entity_get_controller('redirector_rule')->prepareRedirect($url, $query_params);
-  drupal_goto($url, array('query' => $query_params));
+  if (empty($components)) {
+    $components = redirector_get_active_components();
+  }
+  $rule_controller = entity_get_controller('redirector_rule');
+  foreach ($components as $component) {
+    $rule_controller->prepareComponentRedirect($redirect_rule, $component, $url, $options);
+  }
+  if (variable_get('site_frontpage', 'node') == $url) {
+    $url = '';
+  }
+  drupal_goto($url, $options);
 }
 
 /**
@@ -264,12 +274,12 @@ function redirector_get_active_components() {
  * @return RedirectorComponent
  */
 function redirector_get_component($component_id) {
+  $components = &drupal_static(__FUNCTION__);
   $all_components = redirector_get_all_components();
-  $component = FALSE;
-  if (class_exists($all_components[$component_id]['class'])) {
-    $component = new $all_components[$component_id]['class']($all_components[$component_id]);
+  if (empty($components[$component_id]) && class_exists($all_components[$component_id]['class'])) {
+    $components[$component_id] = new $all_components[$component_id]['class']($all_components[$component_id]);
   }
-  return $component;
+  return $components[$component_id];
 }
 
 /**

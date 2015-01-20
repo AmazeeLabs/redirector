@@ -48,4 +48,12 @@ class RedirectorComponentCountry extends RedirectorComponent {
     }
     return array('country' => $country);
   }
+
+  /**
+   * (non-PHPdoc)
+   * @see RedirectorComponentInterface::prepareRedirect()
+   */
+  public function prepareRedirect($values, &$url, &$options) {
+    $options['query']['country'] = $values['country'];
+  }
 }

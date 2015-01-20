@@ -114,11 +114,12 @@ class RedirectorRuleEntityController extends DrupalDefaultEntityController imple
    * @param string $url
    *   The original URL.
    *
-   * @param array $query_params
-   *   An array with the query parameters.
+   * @param array $options
+   *   An array with the additional options for the URL.
    */
-  public function prepareRedirect($entity, &$url, &$query_params) {
-    // @todo: Prepare the redirect.
+  public function prepareComponentRedirect($entity, RedirectorComponentInterface $component, &$url, &$options) {
+    $component_values = $this->getComponentValues($entity, $component);
+    $component->prepareRedirect($component_values, $url, $options);
   }
 
 /* (non-PHPdoc)

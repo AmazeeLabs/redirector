@@ -40,4 +40,19 @@ interface RedirectorComponentInterface {
    */
   public function matchValue(array $value);
 
+  /**
+   * Prepares the redirect using $values.
+   *
+   * @param array $values
+   *  An array with the values of the component.
+   *
+   * @param string $url
+   *  The URL to which the redirect will be made.
+   *
+   * @param array $options
+   *  An array with options for the URL. This is the same as the $options
+   *  parameter for the url() function.
+   */
+  public function prepareRedirect($values, &$url, &$options);
+
 }

@@ -48,4 +48,14 @@ class RedirectorComponentLanguage extends RedirectorComponent {
     global $language;
     return array('language' => $language->language);
   }
+
+  /**
+   * (non-PHPdoc)
+   * @see RedirectorComponentInterface::prepareRedirect()
+   */
+  public function prepareRedirect($values, &$url, &$options) {
+    $language_list = language_list();
+    // We just change the global language, the url() function should the use it.
+    $options['language'] = $language_list[$values['language']];
+  }
 }
