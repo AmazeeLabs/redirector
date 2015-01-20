@@ -41,11 +41,21 @@ class RedirectorComponentCountry extends RedirectorComponent {
    * @see RedirectorComponentInterface::getCurrentValue()
    */
   public function getCurrentValue() {
-    // @todo: Implement the correct handling of countries.
     $country = '';
-    if (!empty($_REQUEST['country'])) {
-      $country = $_REQUEST['country'];
+    // If we have the country in the request parameters, then we use it.
+    if (!empty($_REQUEST['redirector_override_country_code'])) {
+      $country = $_REQUEST['redirector_override_country_code'];
     }
+    else {
+      $geoip = array();
+      if (function_exists('geoip_record_by_name')) {
+        $geoip = @geoip_record_by_name(ip_address());
+      }
+      if (isset($geoip['country_code'])) {
+        $country = drupal_strtoupper($geoip['country_code']);
+      }
+    }
+
     return array('country' => $country);
   }
 

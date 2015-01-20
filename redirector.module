@@ -36,7 +36,8 @@ function redirector_theme() {
  */
 function redirector_init() {
   // @todo: this should be improved as much as possible!
-  // @todo: split in functions.
+  // @todo: we should split this in more functions if we will need this
+  // functionality in other places.
   $rules = redirector_rule_load_multiple();
   $active_components = redirector_get_active_components();
   $rule_controller = entity_get_controller('redirector_rule');
@@ -97,12 +98,18 @@ function redirector_init() {
     }
   }
   if (!empty($redirect_rule)) {
-    redirector_rule_redirect($redirect_rule);
+    redirector_rule_redirect($redirect_rule, $active_components);
   }
 }
 
 /**
  * Makes a redirect based on the rule.
+ *
+ * @param stdClass $redirect_rule
+ *  The redirect rule to check.
+ *
+ * @param array $components
+ *  An array of components to use for the redirect.
  */
 function redirector_rule_redirect($redirect_rule, $components = array()) {
   $url = $_GET['q'];
@@ -119,6 +126,7 @@ function redirector_rule_redirect($redirect_rule, $components = array()) {
   foreach ($components as $component) {
     $rule_controller->prepareComponentRedirect($redirect_rule, $component, $url, $options);
   }
+  // For the site homepage, just reset the URL.
   if (variable_get('site_frontpage', 'node') == $url) {
     $url = '';
   }
