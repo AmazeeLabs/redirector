@@ -35,4 +35,17 @@ class RedirectorComponentCountry extends RedirectorComponent {
     }
     return $options;
   }
+
+  /**
+   * (non-PHPdoc)
+   * @see RedirectorComponentInterface::getCurrentValue()
+   */
+  public function getCurrentValue() {
+    // @todo: Implement the correct handling of countries.
+    $country = '';
+    if (!empty($_REQUEST['country'])) {
+      $country = $_REQUEST['country'];
+    }
+    return array('country' => $country);
+  }
 }

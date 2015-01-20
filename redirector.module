@@ -8,8 +8,8 @@
 function redirector_entity_info() {
   $return = array(
     'redirector_rule' => array(
-      'label' => t('Redirector'),
-      'controller class' => 'RedirectorEntityController',
+      'label' => t('Redirector Rule'),
+      'controller class' => 'RedirectorRuleEntityController',
       'base table' => 'redirector_rules',
       'entity keys' => array(
         'id' => 'rid',
@@ -29,6 +29,29 @@ function redirector_theme() {
       'render element' => 'form',
     ),
   );
+}
+
+/**
+ * Implements hook_init().
+ */
+function redirector_init() {
+  // @todo: this should be improved as much as possible!
+  $rules = redirector_rule_load_multiple();
+  $active_components = redirector_get_active_components();
+  $rule_controller = entity_get_controller('redirector_rule');
+  foreach ($rules as &$rule) {
+    $rule->match_results = array('total_match' => TRUE);
+    foreach ($active_components as $component_key => $component) {
+      $component_match = $rule_controller->matchComponent($rule, $component);
+      if ($component_match) {
+        $rule->match_results['components'][$component_key] = TRUE;
+      }
+      else {
+        $rule->match_results['components'][$component_key] = FALSE;
+        $rule->match_results['total_match'] = FALSE;
+      }
+    }
+  }
 }
 
 /**
@@ -104,6 +127,15 @@ function _redirector_sort_callback($a, $b) {
 }
 
 /**
+ * Sort callback for a set of components, where they are structured as arrays..
+ */
+function _redirector_sort_callback_array($a, $b) {
+  $a += array('weight' => 0);
+  $b += array('weight' => 0);
+  return $a['weight'] < $b['weight'] ? -1 : 1;
+}
+
+/**
  * Helper function to return the link to edit a rule.
  *
  * @param int $rid
@@ -140,6 +172,7 @@ function redirector_get_all_components() {
   $components = &drupal_static(__FUNCTION__);
   if (is_null($components)) {
     $components = module_invoke_all('redirector_components');
+    uasort($components, '_redirector_sort_callback_array');
     // @todo: invoke an alter if needed.
   }
   return $components;
@@ -156,6 +189,7 @@ function redirector_get_active_components() {
     foreach ($components as $key => $name) {
       $components[$key] = redirector_get_component($key);
     }
+    uasort($components, '_redirector_sort_callback');
   }
   return $components;
 }
@@ -172,7 +206,7 @@ function redirector_get_component($component_id) {
   $all_components = redirector_get_all_components();
   $component = FALSE;
   if (class_exists($all_components[$component_id]['class'])) {
-    $component = new $all_components[$component_id]['class']();
+    $component = new $all_components[$component_id]['class']($all_components[$component_id]);
   }
   return $component;
 }
@@ -186,9 +220,11 @@ function redirector_redirector_components() {
   return array(
     'language' => array(
       'class' => 'RedirectorComponentLanguage',
+      'types' => array('must_match_restriction'),
     ),
     'country' => array(
       'class' => 'RedirectorComponentCountry',
+      'weight' => 1,
     ),
   );
 }

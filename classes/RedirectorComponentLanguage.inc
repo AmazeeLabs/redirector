@@ -8,13 +8,6 @@
 class RedirectorComponentLanguage extends RedirectorComponent {
 
   /**
-   * Constructor of the class. We initialize the types.
-   */
-  public function __construct() {
-    $this->types = array('must_match_restriction');
-  }
-
-  /**
    * (non-PHPdoc)
    * @see RedirectorComponentInterface::getTitle()
    */
@@ -45,5 +38,14 @@ class RedirectorComponentLanguage extends RedirectorComponent {
       return $options[$column_name];
     }
     return $options;
+  }
+
+  /**
+   * (non-PHPdoc)
+   * @see RedirectorComponentInterface::getCurrentValue()
+   */
+  public function getCurrentValue() {
+    global $language;
+    return array('language' => $language->language);
   }
 }

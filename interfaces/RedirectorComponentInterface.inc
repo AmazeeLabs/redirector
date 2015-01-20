@@ -34,4 +34,18 @@ interface RedirectorComponentInterface {
    */
   public function getAvailableOptions($column_name = NULL);
 
+  /**
+   * Returns the value of the component, based on the current request.
+   */
+  public function getCurrentValue();
+
+  /**
+   * Checks if the value of the component matches the value sent as parameter.
+   *
+   * @param array $value
+   *  An array with values to match. This usually contains as keys all the
+   *  columns that the component defines.
+   */
+  public function matchValue(array $value);
+
 }

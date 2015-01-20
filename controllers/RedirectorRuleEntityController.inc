@@ -5,7 +5,7 @@
  *  Controller class for the RedirectorTest Entity.
  */
 
-class RedirectorEntityController extends DrupalDefaultEntityController implements EntityAPIControllerInterface {
+class RedirectorRuleEntityController extends DrupalDefaultEntityController implements EntityAPIControllerInterface {
 
   /**
    * (non-PHPdoc)
@@ -67,6 +67,40 @@ class RedirectorEntityController extends DrupalDefaultEntityController implement
 
     return $entity;
   }
+
+  /**
+   * Checks if this rule matches a component.
+   *
+   * @param stdClass $entity
+   *   The entity to check, which contains the rule definition.
+   *
+   * @param RedirectorComponentInterface $component
+   *   The component to be checked.
+   */
+  public function matchComponent($entity, RedirectorComponentInterface $component) {
+    return $component->matchValue($this->getComponentValues($entity, $component));
+  }
+
+  /**
+   * Returns an array with all the values of a rule that relates to a component.
+   *
+   * @param stdClass $entity
+   *   The entity to which contains the rule definition.
+   *
+   * @param RedirectorComponentInterface $component
+   *  A rule component.
+   */
+  public function getComponentValues($entity, RedirectorComponentInterface $component) {
+    $columns = $component->getStorageColumns();
+    $rule_values = array();
+    foreach($columns as $column) {
+      if (isset($entity->{$column})) {
+        $rule_values[$column] = $entity->{$column};
+      }
+    }
+    return $rule_values;
+  }
+
 
 /* (non-PHPdoc)
  * @see EntityAPIControllerInterface::export()
