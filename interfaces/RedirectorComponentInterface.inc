@@ -19,14 +19,6 @@ interface RedirectorComponentInterface {
   public function getStorageColumns();
 
   /**
-   * Checks if the component is of a specific type.
-   *
-   * @param string $type
-   *  The name of the type. For example: 'must_match_restriction'
-   */
-  public function isOfType($type);
-
-  /**
    * Returns an array with all the options that this component can have.
    *
    * This can be used for example on an admin form to show all the values that

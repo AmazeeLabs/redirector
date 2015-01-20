@@ -8,11 +8,6 @@
 abstract class RedirectorComponent implements RedirectorComponentInterface {
 
   /**
-   * An array with types of this component.
-   */
-  protected $types = array();
-
-  /**
    * The weight of the component.
    */
   protected $weight = 0;
@@ -23,25 +18,12 @@ abstract class RedirectorComponent implements RedirectorComponentInterface {
    * @param array $params
    *  An array with parameters to initialize the component. It can contain the
    *  following values:
-   *   - 'types': an array specifing what type of component this is. Valid
-   *   values are: 'must_match_restriction'.
-   *   - 'weighht': the weight of the component.
+   *   - 'weight': the weight of the component.
    */
   public function __construct($params = array()) {
-    if (!empty($params['types'])) {
-      $this->types = $params['types'];
-    }
     if (!empty($params['weight'])) {
       $this->weight = $params['weight'];
     }
-  }
-
-  /**
-   * (non-PHPdoc)
-   * @see RedirectorComponentInterface::isOfType()
-   */
-  public function isOfType($type) {
-    return in_array($type, $this->types);
   }
 
   /**

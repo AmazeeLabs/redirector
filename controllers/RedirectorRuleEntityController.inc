@@ -12,7 +12,11 @@ class RedirectorRuleEntityController extends DrupalDefaultEntityController imple
    * @see DrupalDefaultEntityController::attachLoad()
    */
   public function attachLoad(&$entities, $revision_id = false) {
-    // not used at the moment.
+    foreach ($entities as $entity) {
+      if (!is_null($entity->must_match)) {
+        $entity->must_match = unserialize($entity->must_match);
+      }
+    }
   }
 
 
@@ -101,6 +105,21 @@ class RedirectorRuleEntityController extends DrupalDefaultEntityController imple
     return $rule_values;
   }
 
+  /**
+   * Prepares the parameters for the redirect based on rule entity.
+   *
+   * @param stdClass $entity
+   *   The entity to which contains the rule definition.
+   *
+   * @param string $url
+   *   The original URL.
+   *
+   * @param array $query_params
+   *   An array with the query parameters.
+   */
+  public function prepareRedirect($entity, &$url, &$query_params) {
+    // @todo: Prepare the redirect.
+  }
 
 /* (non-PHPdoc)
  * @see EntityAPIControllerInterface::export()

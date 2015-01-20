@@ -37,6 +37,13 @@ function redirector_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
+      'must_match' => array(
+        'description' => 'A serialized array with components that must match.',
+        'type' => 'blob',
+        'not null' => FALSE,
+        'size' => 'normal',
+        'serialize' => TRUE,
+      ),
     ),
     'primary key' => array('rid'),
   );
@@ -56,6 +63,5 @@ function redirector_schema() {
       }
     }
   }
-  // @todo: add the special fields to the schema.
   return $schema;
 }

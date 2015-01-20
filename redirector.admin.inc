@@ -98,7 +98,10 @@ function redirector_admin_add_edit_rule_form($form, &$form_state, $rule = NULL) 
     // The way it works now is that if the component returns some options for
     // a column, then we will show a simple select item, otherwise we will show
     // a textfield.
+    $component_options = array();
     foreach ($active_components as $key => $component) {
+      // The component options are used below, in the must_match field.
+      $component_options[$key] = $component->getTitle();
       $columns = $component->getStorageColumns();
       foreach ($columns as $column_name) {
         $options = $component->getAvailableOptions($column_name);
@@ -117,6 +120,13 @@ function redirector_admin_add_edit_rule_form($form, &$form_state, $rule = NULL) 
         }
       }
     }
+    $form['components']['must_match'] = array(
+      '#type' => 'checkboxes',
+      '#title' => t('Components that must match the rule'),
+      '#description' => t('Select the components that must match when checking a rule for redirect. The ones which may not match are still used to find the best redirect URL when there are several possibilities.'),
+      '#options' => $component_options,
+      '#default_value' => !empty($rule->must_match) ? $rule->must_match : array(),
+    );
   }
   if (!empty($rule)) {
     $form['rid'] = array(
@@ -147,6 +157,7 @@ function redirector_admin_add_edit_rule_form_submit(&$form, &$form_state) {
 
   // Add the new values into the object.
   $redirect_rule->title = $form_state['values']['title'];
+  $redirect_rule->must_match = array_filter($form_state['values']['must_match']);
   $active_components = redirector_get_active_components();
   foreach ($active_components as $key => $component) {
     $columns = $component->getStorageColumns();
@@ -178,6 +189,8 @@ function redirector_current_rules_form($form, &$form_state) {
   $component_rules = redirector_rule_load_multiple();
   $rows = array();
   $weight_delta = round(count($component_rules) / 2) + 10;
+  $yes = '<span style="font-weight:bold; text-transform:uppercase">' . t('yes') . '</span>';
+  $no = t('no');
   foreach ($component_rules as $rule) {
     $row = array();
     foreach ($header as $key => $value) {
@@ -188,7 +201,11 @@ function redirector_current_rules_form($form, &$form_state) {
         $row[] = implode(' | ', $actions);
       }
       else {
-        $row[] = $rule->{$key};
+        $must_match = $no;
+        if (!empty($rule->must_match[$key])) {
+          $must_match = $yes;
+        }
+        $row[] = $rule->{$key} . ' (' . t('Must match: !must_match', array('!must_match' => $must_match)) . ')';
       }
     }
     $rows[$rule->rid] = array('data' => $row, 'class' => array('draggable'));

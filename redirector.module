@@ -36,22 +36,83 @@ function redirector_theme() {
  */
 function redirector_init() {
   // @todo: this should be improved as much as possible!
+  // @todo: split in functions.
   $rules = redirector_rule_load_multiple();
   $active_components = redirector_get_active_components();
   $rule_controller = entity_get_controller('redirector_rule');
+  $redirect_rule = NULL;
   foreach ($rules as &$rule) {
-    $rule->match_results = array('total_match' => TRUE);
+    $rule->match_results = array('total_match' => TRUE, 'matched_required' => 0, 'matched_not_required' => 0);
     foreach ($active_components as $component_key => $component) {
       $component_match = $rule_controller->matchComponent($rule, $component);
       if ($component_match) {
         $rule->match_results['components'][$component_key] = TRUE;
+        if (!empty($rule->must_match[$component_key])) {
+          $rule->match_results['matched_required']++;
+        }
+        else {
+          $rule->match_results['matched_not_required']++;
+        }
       }
       else {
         $rule->match_results['components'][$component_key] = FALSE;
-        $rule->match_results['total_match'] = FALSE;
+        // The total match is set to false only if the component is a
+        // 'must_match' component in this rule.
+        if (!empty($rule->must_match[$component_key])) {
+          $rule->match_results['total_match'] = FALSE;
+        }
+      }
+    }
+    // If the rule matches completely, we do not do any redirect.
+    if ($rule->match_results['total_match']) {
+      return ;
+    }
+    // If we are here, we have to iterate over the redirect rules to see which one
+    // would be the best.
+    if ($rule->match_results['matched_required'] + $rule->match_results['matched_not_required'] > 0) {
+      if (empty($redirect_rule)) {
+        $redirect_rule = $rule;
+        continue;
+      }
+      // The new rule is better than the old one if:
+      // 1. It has more matched required components.
+      // 2. If it has the same number, if has more non-required matched
+      // components.
+      // 3. If it has the same number for 1) and 2), the the weight of the
+      // components will count (@todo: to implement this).
+      if ($rule->match_results['matched_required'] == $redirect_rule->match_results['matched_required']) {
+        if ($rule->match_results['matched_not_required'] == $redirect_rule->match_results['matched_not_required']) {
+          // Case 3.
+          // @todo: implement it.
+        }
+        // Case 2.
+        elseif ($rule->match_results['matched_not_required'] > $redirect_rule->match_results['matched_not_required']) {
+          $redirect_rule = $rule;
+        }
+      }
+      // Case 1.
+      elseif ($rule->match_results['matched_required'] > $redirect_rule->match_results['matched_required']) {
+        $redirect_rule = $rule;
       }
     }
   }
+
+  redirector_rule_redirect($redirect_rule);
+}
+
+/**
+ * Makes a redirect based on the rule.
+ */
+function redirector_rule_redirect($redirect_rule) {
+  $url = $_GET['q'];
+  $query_params = drupal_get_query_parameters();
+  // Unset the destination from the parameter to make sure we will not be
+  // redirected to it by the drupal_goto().
+  if (isset($_GET['destination'])) {
+    unset($_GET['destination']);
+  }
+  entity_get_controller('redirector_rule')->prepareRedirect($url, $query_params);
+  drupal_goto($url, array('query' => $query_params));
 }
 
 /**
@@ -220,7 +281,6 @@ function redirector_redirector_components() {
   return array(
     'language' => array(
       'class' => 'RedirectorComponentLanguage',
-      'types' => array('must_match_restriction'),
     ),
     'country' => array(
       'class' => 'RedirectorComponentCountry',
