@@ -186,67 +186,72 @@ function redirector_admin_add_edit_rule_form_submit(&$form, &$form_state) {
  * Form constructor for showing the current rules form.
  */
 function redirector_current_rules_form($form, &$form_state) {
-  $active_components = redirector_get_active_components();
-  $header = array('title' => t('Title'));
-  $components_options = array();
-  foreach ($active_components as $component_key => $component) {
-    $columns = $component->getStorageColumns();
-    foreach ($columns as $column_name) {
-      $header[$column_name] = $component->getTitle() . ' - (' . $column_name . ')';
-      $components_options[$column_name] = $component->getAvailableOptions($column_name);
-      $component_columns[$column_name] = $component_key;
-    }
-  }
-  $header['actions'] = t('Actions');
-
   $component_rules = redirector_rule_load_multiple();
-  $rows = array();
-  $weight_delta = round(count($component_rules) / 2) + 10;
-  $yes = '<span style="font-weight:bold; text-transform:uppercase">' . t('yes') . '</span>';
-  $no = t('no');
-  foreach ($component_rules as $rule) {
-    $row = array();
-    foreach ($header as $key => $value) {
-      if ($key == 'actions') {
-        $actions = array();
-        $actions[] = l(t('Edit'), redirector_edit_rule_link($rule->rid));
-        $actions[] = l(t('Delete'), redirector_delete_rule_link($rule->rid));
-        $row[] = implode(' | ', $actions);
-      }
-      else {
-        $value = $rule->{$key};
-        if (!empty($component_columns[$key])) {
-          $must_match = $no;
-          if (!empty($rule->must_match[$component_columns[$key]])) {
-            $must_match = $yes;
-          }
-          $value = isset($components_options[$key][$rule->{$key}]) ? $components_options[$key][$value] : $value;
-          $value = $value . ' (' . t('Must match: !must_match', array('!must_match' => $must_match)) . ')';
-        }
-        $row[] = $value;
+  if (!empty($component_rules)) {
+    $active_components = redirector_get_active_components();
+    $header = array('title' => t('Title'));
+    $components_options = array();
+    foreach ($active_components as $component_key => $component) {
+      $columns = $component->getStorageColumns();
+      foreach ($columns as $column_name) {
+        $header[$column_name] = $component->getTitle() . ' - (' . $column_name . ')';
+        $components_options[$column_name] = $component->getAvailableOptions($column_name);
+        $component_columns[$column_name] = $component_key;
       }
     }
-    $rows[$rule->rid] = array('data' => $row, 'class' => array('draggable'));
-    $form['weight_' . $rule->rid] = array(
-      '#type' => 'weight',
-      '#default_value' => $rule->weight,
-      '#delta' => $weight_delta,
-      '#attributes' => array('class' => array('component-rules-weight')),
-      '#title' => t('Weight'),
-      '#title_display' => 'invisible',
+    $header['actions'] = t('Actions');
+
+    $rows = array();
+    $weight_delta = round(count($component_rules) / 2) + 10;
+    $yes = '<span style="font-weight:bold; text-transform:uppercase">' . t('yes') . '</span>';
+    $no = t('no');
+    foreach ($component_rules as $rule) {
+      $row = array();
+      foreach ($header as $key => $value) {
+        if ($key == 'actions') {
+          $actions = array();
+          $actions[] = l(t('Edit'), redirector_edit_rule_link($rule->rid));
+          $actions[] = l(t('Delete'), redirector_delete_rule_link($rule->rid));
+          $row[] = implode(' | ', $actions);
+        }
+        else {
+          $value = $rule->{$key};
+          if (!empty($component_columns[$key])) {
+            $must_match = $no;
+            if (!empty($rule->must_match[$component_columns[$key]])) {
+              $must_match = $yes;
+            }
+            $value = isset($components_options[$key][$rule->{$key}]) ? $components_options[$key][$value] : $value;
+            $value = $value . ' (' . t('Must match: !must_match', array('!must_match' => $must_match)) . ')';
+          }
+          $row[] = $value;
+        }
+      }
+      $rows[$rule->rid] = array('data' => $row, 'class' => array('draggable'));
+      $form['weight_' . $rule->rid] = array(
+        '#type' => 'weight',
+        '#default_value' => $rule->weight,
+        '#delta' => $weight_delta,
+        '#attributes' => array('class' => array('component-rules-weight')),
+        '#title' => t('Weight'),
+        '#title_display' => 'invisible',
+      );
+      $rids[] = $rule->rid;
+    }
+    $form['rids'] = array(
+      '#type' => 'value',
+      '#value' => $rids,
     );
-    $rids[] = $rule->rid;
+    $form['#header'] = $header;
+    $form['#rows'] = $rows;
+    $form['submit'] = array(
+      '#type' => 'submit',
+      '#value' => t('Save'),
+    );
   }
-  $form['rids'] = array(
-    '#type' => 'value',
-    '#value' => $rids,
-  );
-  $form['#header'] = $header;
-  $form['#rows'] = $rows;
-  $form['submit'] = array(
-    '#type' => 'submit',
-    '#value' => t('Save'),
-  );
+  else {
+    $form['no_items']['#markup'] = t('There are no rules defined at the moment.');
+  }
   return $form;
 }
 
@@ -269,14 +274,17 @@ function redirector_current_rules_form_submit(&$form, &$form_state) {
  */
 function theme_redirector_current_rules_form(&$variables) {
   $form = $variables['form'];
-  $table_id = 'current-rules-table';
-  $form['#header']['weight'] = t('Weight');
-  foreach ($form['#rows'] as $rid => &$value) {
-    $form['#rows'][$rid]['data']['weight'] = drupal_render($form['weight_' . $rid]);
+  $output = '';
+  if (!empty($form['#header'])) {
+    $table_id = 'current-rules-table';
+    $form['#header']['weight'] = t('Weight');
+    foreach ($form['#rows'] as $rid => &$value) {
+      $form['#rows'][$rid]['data']['weight'] = drupal_render($form['weight_' . $rid]);
+    }
+    $output = theme('table', array('header' => $form['#header'], 'rows' => $form['#rows'], 'attributes' => array('id' => $table_id)));
+    drupal_add_tabledrag($table_id, 'order', 'sibling', 'component-rules-weight');
   }
-  $output = theme('table', array('header' => $form['#header'], 'rows' => $form['#rows'], 'attributes' => array('id' => $table_id)));
   $output .= drupal_render_children($form);
-  drupal_add_tabledrag($table_id, 'order', 'sibling', 'component-rules-weight');
   return $output;
 }
 
