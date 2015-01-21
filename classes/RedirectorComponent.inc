@@ -40,17 +40,76 @@ abstract class RedirectorComponent implements RedirectorComponentInterface {
       if (!isset($value[$column_name])) {
         return FALSE;
       }
-      // If any value should match for this column, then just continue.
-      if ($value[$column_name] === '--any--') {
-        continue;
+      $column_matches = FALSE;
+      if (is_string($value[$column_name]['value'])) {
+        if ($value[$column_name]['value'] === '--any--' || $value[$column_name]['value'] == $current_value[$column_name]) {
+          $column_matches = TRUE;
+        }
       }
+      elseif (is_array($value[$column_name]['value'])) {
+        foreach ($value[$column_name]['value'] as $value_key => $value_value) {
+          if ($value_value === '--any--' || $value_value == $current_value[$column_name]) {
+            $column_matches = TRUE;
+          }
+        }
+      }
+      // Check if we should negate the result.
+      if (!empty($value[$column_name]['negate'])) {
+        $column_matches = !$column_matches;
+      }
+
       // If we find at least one column that does not match, then we break here.
-      if ($value[$column_name] != $current_value[$column_name]) {
+      if (!$column_matches) {
         $match = FALSE;
         break;
       }
     }
     return $match;
+  }
+
+  /**
+   * (non-PHPdoc)
+   * @see RedirectorComponentInterface::summary()
+   */
+  public function summary($values) {
+    static $options;
+    if (!isset($options)) {
+      $options = $this->getAvailableOptions();
+    }
+    $output = $this->getTitle() . ': ';
+    foreach ($values as $key => $value) {
+      $readable_values = array();
+      if (!empty($value['value'])) {
+        if (is_array($value['value'])) {
+          foreach ($value['value'] as $option_value) {
+            if (!empty($options[$key][$option_value])) {
+              $readable_values[$key][] = $options[$key][$option_value];
+            }
+            else {
+              $readable_values[$key][] = $option_value;
+            }
+          }
+        }
+        else {
+          if (!empty($options[$key][$value['value']])) {
+            $readable_values[$key] = $options[$key][$value['value']];
+          }
+          else {
+            $readable_values[$key] = $value['value'];
+          }
+        }
+      }
+      if (!empty($value['negate'])) {
+        $output .= 'NOT ';
+      }
+      if (is_array($readable_values[$key])) {
+        $output .= ' IN (' . implode('; ', $readable_values[$key]) . '); ';
+      }
+      else {
+        $output .= $readable_values[$key] . '; ';
+      }
+    }
+    return $output;
   }
 
   /**

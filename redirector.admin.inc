@@ -54,14 +54,17 @@ function redirector_update_table_fields() {
   $all_components = redirector_get_all_components();
   // Rebuild the schema, to make sure we have the newest fields.
   $new_schema = drupal_get_schema('redirector_rules', TRUE);
+  $rule_parts = redirector_rule_parts();
   foreach ($components as $key => $component_object) {
     if (!empty($component_object)) {
       $columns = $component_object->getStorageColumns();
       // We iterate over each column and check if we already have an column for
       // it. If not, then we create one now.
       foreach ($columns as $column_name) {
-        if (!db_field_exists('redirector_rules', $column_name)) {
-          db_add_field('redirector_rules', $column_name, $new_schema['fields'][$column_name]);
+        foreach ($rule_parts as $part => $part_values) {
+          if (!db_field_exists('redirector_rules', $part . '_' . $column_name)) {
+            db_add_field('redirector_rules', $part . '_' . $column_name, $new_schema['fields'][$part . '_' . $column_name]);
+          }
         }
       }
     }
@@ -98,35 +101,44 @@ function redirector_admin_add_edit_rule_form($form, &$form_state, $rule = NULL) 
     // The way it works now is that if the component returns some options for
     // a column, then we will show a simple select item, otherwise we will show
     // a textfield.
-    $component_options = array();
-    foreach ($active_components as $key => $component) {
-      // The component options are used below, in the must_match field.
-      $component_options[$key] = $component->getTitle();
-      $columns = $component->getStorageColumns();
-      foreach ($columns as $column_name) {
-        $options = $component->getAvailableOptions($column_name);
-        if (!empty($options)) {
-          $options = array_reverse($options, TRUE);
-          $options['--any--'] = t('Any');
-          $options = array_reverse($options, TRUE);
-        }
-        $rule_form['components'][$column_name] = array(
-          '#type' => !empty($options) ? 'select' : 'textfield',
-          '#title' => $component->getTitle() . ' - (' . $column_name . ')',
-          '#default_value' => !empty($rule) ? $rule->{$column_name} : '',
-        );
-        if (!empty($options)) {
-          $rule_form['components'][$column_name]['#options'] = $options;
+    $parts = redirector_rule_parts();
+    foreach ($parts as $part => $part_value) {
+      $rule_form['components'][$part] = array(
+        '#type' => 'fieldset',
+        '#title' => $part_value['title'],
+      );
+      foreach ($active_components as $key => $component) {
+        $columns = $component->getStorageColumns();
+        foreach ($columns as $column_name) {
+          $options = $component->getAvailableOptions($column_name);
+          if (!empty($options)) {
+            $options = array_reverse($options, TRUE);
+            $options['--any--'] = t('Any');
+            $options = array_reverse($options, TRUE);
+          }
+          $rule_form['components'][$part][$part . '_' . $column_name] = array(
+            '#type' => !empty($options) ? 'select' : 'textfield',
+            '#title' => $component->getTitle() . ' - (' . $column_name . ')',
+            '#default_value' => !empty($rule) ? $rule->{$part . '_' . $column_name}['value'] : '',
+          );
+          if (!empty($options)) {
+            $rule_form['components'][$part][$part . '_' . $column_name]['#options'] = $options;
+            // Check if we should show the element as a multiple selection.
+            if (!empty($part_value['allow_multiple'])) {
+              $rule_form['components'][$part][$part . '_' . $column_name]['#multiple'] = TRUE;
+            }
+          }
+          // Chech if we should show the 'negate' checkbox.
+          if (!empty($part_value['allow_negate'])) {
+            $rule_form['components'][$part][$part . '_' . $column_name . '_negate'] = array(
+              '#type' => 'checkbox',
+              '#title' => t('Negate'),
+              '#default_value' => !empty($rule) ? $rule->{$part . '_' . $column_name}['negate'] : FALSE,
+            );
+          }
         }
       }
     }
-    $rule_form['components']['must_match'] = array(
-      '#type' => 'checkboxes',
-      '#title' => t('Components that must match the rule'),
-      '#description' => t('Select the components that must match when checking a rule for redirect. The ones which may not match are still used to find the best redirect URL when there are several possibilities.'),
-      '#options' => $component_options,
-      '#default_value' => !empty($rule->must_match) ? $rule->must_match : array(),
-    );
   }
   if (!empty($rule)) {
     $rule_form['rid'] = array(
@@ -167,12 +179,18 @@ function redirector_admin_add_edit_rule_form_submit(&$form, &$form_state) {
 
   // Add the new values into the object.
   $redirect_rule->title = $form_state['values']['title'];
-  $redirect_rule->must_match = array_filter($form_state['values']['must_match']);
   $active_components = redirector_get_active_components();
   foreach ($active_components as $key => $component) {
     $columns = $component->getStorageColumns();
+    $parts = redirector_rule_parts();
     foreach ($columns as $column_name) {
-      $redirect_rule->{$column_name} = $form_state['values'][$column_name];
+      foreach ($parts as $part => $part_values) {
+        $redirect_rule->{$part . '_' . $column_name}['value'] = $form_state['values'][$part . '_' . $column_name];
+        $redirect_rule->{$part . '_' . $column_name}['negate'] = FALSE;
+        if (!empty($form_state['values'][$part . '_' . $column_name . '_negate'])) {
+          $redirect_rule->{$part . '_' . $column_name}['negate'] = TRUE;
+        }
+      }
     }
   }
 
@@ -188,45 +206,33 @@ function redirector_admin_add_edit_rule_form_submit(&$form, &$form_state) {
 function redirector_current_rules_form($form, &$form_state) {
   $component_rules = redirector_rule_load_multiple();
   if (!empty($component_rules)) {
+    $rule_controller = entity_get_controller('redirector_rule');
     $active_components = redirector_get_active_components();
     $header = array('title' => t('Title'));
-    $components_options = array();
-    foreach ($active_components as $component_key => $component) {
-      $columns = $component->getStorageColumns();
-      foreach ($columns as $column_name) {
-        $header[$column_name] = $component->getTitle() . ' - (' . $column_name . ')';
-        $components_options[$column_name] = $component->getAvailableOptions($column_name);
-        $component_columns[$column_name] = $component_key;
-      }
+    $parts = redirector_rule_parts();
+    foreach ($parts as $part => $part_value) {
+      $header[$part] = $part_value['title'];
     }
     $header['actions'] = t('Actions');
 
     $rows = array();
     $weight_delta = round(count($component_rules) / 2) + 10;
-    $yes = '<span style="font-weight:bold; text-transform:uppercase">' . t('yes') . '</span>';
-    $no = t('no');
     foreach ($component_rules as $rule) {
       $row = array();
-      foreach ($header as $key => $value) {
-        if ($key == 'actions') {
-          $actions = array();
-          $actions[] = l(t('Edit'), redirector_edit_rule_link($rule->rid));
-          $actions[] = l(t('Delete'), redirector_delete_rule_link($rule->rid));
-          $row[] = implode(' | ', $actions);
+      $row[] = $rule->title;
+      foreach ($parts as $part => $part_value) {
+        $values = array();
+        foreach ($active_components as $component_key => $component) {
+          $component_values = $rule_controller->getComponentValues($rule, $component, array($part));
+          $values[] = $component->summary($component_values);
         }
-        else {
-          $value = $rule->{$key};
-          if (!empty($component_columns[$key])) {
-            $must_match = $no;
-            if (!empty($rule->must_match[$component_columns[$key]])) {
-              $must_match = $yes;
-            }
-            $value = isset($components_options[$key][$rule->{$key}]) ? $components_options[$key][$value] : $value;
-            $value = $value . ' (' . t('Must match: !must_match', array('!must_match' => $must_match)) . ')';
-          }
-          $row[] = $value;
-        }
+        $row[] = implode('</br>', $values);
       }
+      $actions = array();
+      $actions[] = l(t('Edit'), redirector_edit_rule_link($rule->rid));
+      $actions[] = l(t('Delete'), redirector_delete_rule_link($rule->rid));
+      $row[] = implode(' | ', $actions);
+
       $rows[$rule->rid] = array('data' => $row, 'class' => array('draggable'));
       $form['weight_' . $rule->rid] = array(
         '#type' => 'weight',

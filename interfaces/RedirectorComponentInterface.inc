@@ -36,7 +36,11 @@ interface RedirectorComponentInterface {
    *
    * @param array $value
    *  An array with values to match. This usually contains as keys all the
-   *  columns that the component defines.
+   *  columns that the component defines. Each element in the array is another
+   *  array with two keys:
+   *   - value: it can be a string representing the value of the component or
+   *   an array representing the multiple values of the component.
+   *   - negate: if we should negate the result.
    */
   public function matchValue(array $value);
 
@@ -44,7 +48,8 @@ interface RedirectorComponentInterface {
    * Prepares the redirect using $values.
    *
    * @param array $values
-   *  An array with the values of the component.
+   *  An array with the values of the component, like in
+   *  RedirectorComponentInterface::matchValue().
    *
    * @param string $url
    *  The URL to which the redirect will be made.
@@ -54,5 +59,15 @@ interface RedirectorComponentInterface {
    *  parameter for the url() function.
    */
   public function prepareRedirect($values, &$url, &$options);
+
+  /**
+   * Returns a string representing the summary of a component for a set of
+   * values.
+   *
+   * @param array $values
+   *  An array with values having the same structure as the one in
+   *  RedirectorComponentInterface::matchValue().
+   */
+  public function summary($values);
 
 }

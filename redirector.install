@@ -37,29 +37,27 @@ function redirector_schema() {
         'not null' => TRUE,
         'default' => 0,
       ),
-      'must_match' => array(
-        'description' => 'A serialized array with components that must match.',
-        'type' => 'blob',
-        'not null' => FALSE,
-        'size' => 'normal',
-        'serialize' => TRUE,
-      ),
     ),
     'primary key' => array('rid'),
   );
-  $active_components = redirector_get_active_components();
-  $all_components = redirector_get_all_components();
-  foreach ($active_components as $key => $component_object) {
-    if (!empty($component_object)) {
-      $columns = $component_object->getStorageColumns();
-      foreach ($columns as $column_name) {
-        $schema['redirector_rules']['fields'][$column_name] = array(
-          'description' => 'Column ' . $column_name . ' for component ' . $component_object->getTitle(),
-          'type' => 'varchar',
-          'length' => 128,
-          'not null' => TRUE,
-          'default' => '',
-        );
+  if (function_exists('redirector_get_active_components')) {
+    $active_components = redirector_get_active_components();
+    $all_components = redirector_get_all_components();
+    foreach ($active_components as $key => $component_object) {
+      if (!empty($component_object)) {
+        $columns = $component_object->getStorageColumns();
+        $parts = redirector_rule_parts();
+        foreach ($columns as $column_name) {
+          foreach ($parts as $part => $part_values) {
+            $schema['redirector_rules']['fields'][$part . '_' . $column_name] = array(
+              'description' => $part . ' column ' . $column_name . ' for component ' . $component_object->getTitle(),
+              'type' => 'blob',
+              'not null' => FALSE,
+              'size' => 'big',
+              'serialize' => TRUE,
+            );
+          }
+        }
       }
     }
   }

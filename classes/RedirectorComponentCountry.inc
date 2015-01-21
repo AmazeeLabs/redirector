@@ -64,6 +64,7 @@ class RedirectorComponentCountry extends RedirectorComponent {
    * @see RedirectorComponentInterface::prepareRedirect()
    */
   public function prepareRedirect($values, &$url, &$options) {
+    // Nothing really to do here, we cannot redirect to another country.
     //$options['query']['redirector_override_country_code'] = $values['country'];
   }
 }

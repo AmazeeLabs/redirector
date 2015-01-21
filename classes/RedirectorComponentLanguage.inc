@@ -55,7 +55,17 @@ class RedirectorComponentLanguage extends RedirectorComponent {
    */
   public function prepareRedirect($values, &$url, &$options) {
     $language_list = language_list();
-    // We just change the global language, the url() function should the use it.
-    $options['language'] = $language_list[$values['language']];
+    $lang_code = NULL;
+    if (is_string($values['language']['value'])) {
+      $lang_code= $values['language']['value'];
+    }
+    elseif (is_array($values['language']['value'])) {
+      $lang_code = reset($values['language']['value']);
+    }
+
+    // Alter the langauge of the options array.
+    if (!empty($lang_code) && !empty($language_list[$lang_code])) {
+      $options['language'] = $language_list[$lang_code];
+    }
   }
 }

@@ -43,60 +43,42 @@ function redirector_init() {
   $rule_controller = entity_get_controller('redirector_rule');
   $redirect_rule = NULL;
   foreach ($rules as &$rule) {
-    $rule->match_results = array('total_match' => TRUE, 'matched_required' => 0, 'matched_not_required' => 0);
+    // The $complete_match will check if the current request matches entirerly
+    // a rule, which is if it matches the destination and source parts merged
+    // togheter. If a complete match happens, then no redirect should be made.
+    $complete_match = TRUE;
+    // The $source_match will check if the current request matches the source
+    // part of the rule. This will be used to determine which redirect rule to
+    // apply when doing the redirect.
+    $source_match = TRUE;
     foreach ($active_components as $component_key => $component) {
-      $component_match = $rule_controller->matchComponent($rule, $component);
-      if ($component_match) {
-        $rule->match_results['components'][$component_key] = TRUE;
-        if (!empty($rule->must_match[$component_key])) {
-          $rule->match_results['matched_required']++;
-        }
-        else {
-          $rule->match_results['matched_not_required']++;
+      $component_match = $rule_controller->matchComponent($rule, $component, array('dest', 'source'));
+      if (!$component_match) {
+        $complete_match = FALSE;
+      }
+      if (empty($redirect_rule) && !empty($source_match)) {
+        $source_component_match = $rule_controller->matchComponent($rule, $component, array('source'));
+        if (!$source_component_match) {
+          $source_match = FALSE;
         }
       }
-      else {
-        $rule->match_results['components'][$component_key] = FALSE;
-        // The total match is set to false only if the component is a
-        // 'must_match' component in this rule.
-        if (!empty($rule->must_match[$component_key])) {
-          $rule->match_results['total_match'] = FALSE;
-        }
+      // If this rule does already not matches the source part nor the complete
+      // we just continue to the next rule.
+      if (!$source_match && !$complete_match) {
+        continue 2;
       }
     }
-    // If the rule matches completely, we do not do any redirect.
-    if ($rule->match_results['total_match']) {
-      return ;
+    // No redirect if we found a complete match. This means that the user is on
+    // a valid page.
+    if (!empty($complete_match)) {
+      return;
     }
-    // If we are here, we have to iterate over the redirect rules to see which one
-    // would be the best.
-    if ($rule->match_results['matched_required'] + $rule->match_results['matched_not_required'] > 0) {
-      if (empty($redirect_rule)) {
-        $redirect_rule = $rule;
-        continue;
-      }
-      // The new rule is better than the old one if:
-      // 1. It has more matched required components.
-      // 2. If it has the same number, if has more non-required matched
-      // components.
-      // 3. If it has the same number for 1) and 2), the the weight of the
-      // components will count (@todo: to implement this).
-      if ($rule->match_results['matched_required'] == $redirect_rule->match_results['matched_required']) {
-        if ($rule->match_results['matched_not_required'] == $redirect_rule->match_results['matched_not_required']) {
-          // Case 3.
-          // @todo: implement it.
-        }
-        // Case 2.
-        elseif ($rule->match_results['matched_not_required'] > $redirect_rule->match_results['matched_not_required']) {
-          $redirect_rule = $rule;
-        }
-      }
-      // Case 1.
-      elseif ($rule->match_results['matched_required'] > $redirect_rule->match_results['matched_required']) {
-        $redirect_rule = $rule;
-      }
+    // We found the first redirect rule that matches the request.
+    if (!empty($source_match) && empty($redirect_rule)) {
+      $redirect_rule = $rule;
     }
   }
+
   if (!empty($redirect_rule)) {
     redirector_rule_redirect($redirect_rule, $active_components);
   }
@@ -239,6 +221,14 @@ function redirector_delete_rule_link($rid) {
  */
 function redirector_get_admin_path() {
   return 'admin/config/system/redirector';
+}
+
+/**
+ * Helper function to return the possible parts of a rule.
+ */
+function redirector_rule_parts() {
+  return array('source' => array('title' => t('Source'), 'allow_multiple' => TRUE, 'allow_negate' => TRUE),
+               'dest' => array('title' => t('Destination')));
 }
 
 /**
