@@ -129,14 +129,14 @@ function redirector_admin_add_edit_rule_form($form, &$form_state, $rule = NULL) 
             }
           }
           // Chech if we should show the 'negate' checkbox.
-          // @todo: Not yet tested!
-          if (!empty($part_value['allow_negate'])) {
+          // @todo: Not yet tested, but the logic is implemented.
+          /*if (!empty($part_value['allow_negate'])) {
             $rule_form['components'][$part][$part . '_' . $column_name . '_negate'] = array(
               '#type' => 'checkbox',
               '#title' => t('Negate'),
               '#default_value' => !empty($rule) ? $rule->{$part . '_' . $column_name}['negate'] : FALSE,
             );
-          }
+          }*/
         }
       }
     }

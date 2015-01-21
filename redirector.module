@@ -21,6 +21,17 @@ function redirector_entity_info() {
 }
 
 /**
+ * Implements hook_permission().
+ */
+function redirector_permission() {
+  return array(
+    'skip redirector redirects' => array(
+      'title' => t('Skip Redirects'),
+    ),
+  );
+}
+
+/**
  * Implements hook_theme().
  */
 function redirector_theme() {
@@ -35,6 +46,10 @@ function redirector_theme() {
  * Implements hook_init().
  */
 function redirector_init() {
+  // Skip the redirect if the current user is allowed to do so.
+  if (user_access('skip redirector redirects')) {
+    return;
+  }
   // @todo: this should be improved as much as possible!
   // @todo: we should split this in more functions if we will need this
   // functionality in other places.
