@@ -64,7 +64,7 @@ class RedirectorComponentLanguage extends RedirectorComponent {
     }
 
     // Alter the langauge of the options array.
-    if (!empty($lang_code) && !empty($language_list[$lang_code])) {
+    if (!empty($lang_code) && $lang_code != '--any--' && !empty($language_list[$lang_code])) {
       $options['language'] = $language_list[$lang_code];
     }
   }
