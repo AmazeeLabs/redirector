@@ -140,20 +140,21 @@ function redirector_menu() {
     'title' => 'Redirector',
     // Maybe we should create another permission.
     'access arguments' => array('administer site'),
+    'page callback' => 'redirector_admin_rules_page',
+    'file' => 'redirector.admin.inc',
+  );
+  $items[$path. '/components'] = array(
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'Components',
+    'access arguments' => array('administer site'),
     'page callback' => 'drupal_get_form',
     'page arguments' => array('redirector_admin_components_form'),
     'file' => 'redirector.admin.inc',
   );
-  $items[$path. '/components'] = array(
-    'type' => MENU_DEFAULT_LOCAL_TASK,
-    'title' => 'Components',
-  );
   $items[$path . '/rules'] = array(
-    'type' => MENU_LOCAL_TASK,
+    'type' => MENU_DEFAULT_LOCAL_TASK,
     'title' => 'Rules',
-    'page callback' => 'redirector_admin_rules_page',
-    'access arguments' => array('administer site'),
-    'file' => 'redirector.admin.inc',
+    'weight' => -5,
   );
   $items[$path . '/rules/edit/%redirector_rule'] = array(
     'type' => MENU_CALLBACK,
