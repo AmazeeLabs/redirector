@@ -120,8 +120,12 @@ function redirector_rule_redirect($redirect_rule, $components = array()) {
     $components = redirector_get_active_components();
   }
   $rule_controller = entity_get_controller('redirector_rule');
+  // @todo: should we show the debug based on a setting?
+  $debug_output = array();
   foreach ($components as $component) {
-    drupal_add_http_header('X-Redirector-' . str_replace(' ', '-', $component->getTitle()), implode(',', $component->getCurrentValue()));
+    drupal_add_http_header('X-Redirector-Current-' . str_replace(' ', '-', $component->getTitle()), implode(',', $component->getCurrentValue()));
+    $component_values = $rule_controller->getComponentValues($redirect_rule, $component);
+    $debug_output[] = $component->summary($component_values);
     $rule_controller->prepareComponentRedirect($redirect_rule, $component, $url, $options);
   }
   // For the site homepage, just reset the URL.
@@ -129,6 +133,7 @@ function redirector_rule_redirect($redirect_rule, $components = array()) {
     $url = '';
   }
   drupal_add_http_header('X-Redirector-Rule', $redirect_rule->title);
+  drupal_add_http_header('X-Redirector-Rule-Condition', implode(' && ', $debug_output));
   drupal_goto($url, $options);
 }
 
