@@ -119,7 +119,7 @@ function redirector_admin_add_edit_rule_form($form, &$form_state, $rule = NULL) 
           $rule_form['components'][$part][$part . '_' . $column_name] = array(
             '#type' => !empty($options) ? 'select' : 'textfield',
             '#title' => $component->getTitle() . ' - (' . $column_name . ')',
-            '#default_value' => !empty($rule) ? $rule->{$part . '_' . $column_name}['value'] : '',
+            '#default_value' => !empty($rule) ? $rule->{$part . '_' . $column_name}['value'] : array('--any--'),
           );
           if (!empty($options)) {
             $rule_form['components'][$part][$part . '_' . $column_name]['#options'] = $options;

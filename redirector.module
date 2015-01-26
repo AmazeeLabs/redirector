@@ -121,12 +121,14 @@ function redirector_rule_redirect($redirect_rule, $components = array()) {
   }
   $rule_controller = entity_get_controller('redirector_rule');
   foreach ($components as $component) {
+    drupal_add_http_header('X-Redirector-' . str_replace(' ', '-', $component->getTitle()), implode(',', $component->getCurrentValue()));
     $rule_controller->prepareComponentRedirect($redirect_rule, $component, $url, $options);
   }
   // For the site homepage, just reset the URL.
   if (variable_get('site_frontpage', 'node') == $url) {
     $url = '';
   }
+  drupal_add_http_header('X-Redirector-Rule', $redirect_rule->title);
   drupal_goto($url, $options);
 }
 
