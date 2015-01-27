@@ -46,6 +46,10 @@ function redirector_theme() {
  * Implements hook_init().
  */
 function redirector_init() {
+  // Skip any redirect if called from the cli.
+  if (drupal_is_cli()) {
+    return;
+  }
   // Skip the redirect if the current user is allowed to do so.
   if (user_access('skip redirector redirects')) {
     return;
