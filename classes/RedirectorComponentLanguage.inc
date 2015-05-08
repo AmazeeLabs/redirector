@@ -18,24 +18,13 @@ class RedirectorComponentLanguage extends RedirectorComponent {
 
   /**
    * (non-PHPdoc)
-   * @see RedirectorComponentInterface::getStorageColumns()
-   */
-	public function getStorageColumns() {
-    return array('language');
-  }
-
-  /**
-   * (non-PHPdoc)
    * @see RedirectorComponentInterface::getAvailableOptions()
    */
-  public function getAvailableOptions($column_name = NULL) {
+  public function getAvailableOptions() {
     $languages = language_list();
-    $options['language'] = array();
+    $options = array();
     foreach ($languages as $language_object) {
-      $options['language'][$language_object->language] = $language_object->name;
-    }
-    if (!empty($column_name)) {
-      return $options[$column_name];
+      $options[$language_object->language] = $language_object->name;
     }
     return $options;
   }
@@ -46,7 +35,7 @@ class RedirectorComponentLanguage extends RedirectorComponent {
    */
   public function getCurrentValue() {
     global $language;
-    return array('language' => $language->language);
+    return $language->language;
   }
 
   /**
@@ -56,11 +45,11 @@ class RedirectorComponentLanguage extends RedirectorComponent {
   public function prepareRedirect($values, &$url, &$options) {
     $language_list = language_list();
     $lang_code = NULL;
-    if (is_string($values['language']['value'])) {
-      $lang_code= $values['language']['value'];
+    if (is_string($values['value'])) {
+      $lang_code= $values['value'];
     }
-    elseif (is_array($values['language']['value'])) {
-      $lang_code = reset($values['language']['value']);
+    elseif (is_array($values['value'])) {
+      $lang_code = reset($values['value']);
     }
 
     // Alter the langauge of the options array.

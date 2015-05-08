@@ -18,22 +18,10 @@ class RedirectorComponentCountry extends RedirectorComponent {
 
   /**
    * (non-PHPdoc)
-   * @see RedirectorComponentInterface::getStorageColumns()
-   */
-	public function getStorageColumns() {
-    return array('country');
-  }
-
-  /**
-   * (non-PHPdoc)
    * @see RedirectorComponentInterface::getAvailableOptions()
    */
-  public function getAvailableOptions($column_name = NULL) {
-    $options['country'] = country_get_list();
-    if (!empty($column_name)) {
-      return $options[$column_name];
-    }
-    return $options;
+  public function getAvailableOptions() {
+    return country_get_list();
   }
 
   /**
@@ -56,7 +44,7 @@ class RedirectorComponentCountry extends RedirectorComponent {
       }
     }
 
-    return array('country' => $country);
+    return $country;
   }
 
   /**

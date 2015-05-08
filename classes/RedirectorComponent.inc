@@ -13,6 +13,11 @@ abstract class RedirectorComponent implements RedirectorComponentInterface {
   protected $weight = 0;
 
   /**
+   * The id of this component.
+   */
+  protected $id;
+
+  /**
    * Constructor for a component.
    *
    * @param array $params
@@ -20,7 +25,8 @@ abstract class RedirectorComponent implements RedirectorComponentInterface {
    *  following values:
    *   - 'weight': the weight of the component.
    */
-  public function __construct($params = array()) {
+  public function __construct($id, $params = array()) {
+    $this->id = $id;
     if (!empty($params['weight'])) {
       $this->weight = $params['weight'];
     }
@@ -28,86 +34,77 @@ abstract class RedirectorComponent implements RedirectorComponentInterface {
 
   /**
    * (non-PHPdoc)
+   * @see RedirectorComponentInterface::getId()
+   */
+  public function getId() {
+    return $this->id;
+  }
+
+  /**
+   * (non-PHPdoc)
    * @see RedirectorComponentInterface::matchValues()
    */
   public function matchValue(array $value) {
-    // The default implementation is to check every field.
-    $columns = $this->getStorageColumns();
-    $match = TRUE;
     $current_value = $this->getCurrentValue();
-    foreach ($columns as $column_name) {
-      // If a column name is missing, then we do not match it.
-      if (!isset($value[$column_name])) {
-        return FALSE;
-      }
-      $column_matches = FALSE;
-      if (is_string($value[$column_name]['value'])) {
-        if ($value[$column_name]['value'] === '--any--' || $value[$column_name]['value'] == $current_value[$column_name]) {
-          $column_matches = TRUE;
-        }
-      }
-      elseif (is_array($value[$column_name]['value'])) {
-        foreach ($value[$column_name]['value'] as $value_key => $value_value) {
-          if ($value_value === '--any--' || $value_value == $current_value[$column_name]) {
-            $column_matches = TRUE;
-          }
-        }
-      }
-      // Check if we should negate the result.
-      if (!empty($value[$column_name]['negate'])) {
-        $column_matches = !$column_matches;
-      }
-
-      // If we find at least one column that does not match, then we break here.
-      if (!$column_matches) {
-        $match = FALSE;
-        break;
+    $matches = FALSE;
+    if (is_string($value['value'])) {
+      if ($value['value'] === '--any--' || $value['value'] == $current_value) {
+        $matches = TRUE;
       }
     }
-    return $match;
+    elseif (is_array($value['value'])) {
+      foreach ($value['value'] as $value_key => $value_value) {
+        if ($value_value === '--any--' || $value_value == $current_value) {
+          $matches = TRUE;
+        }
+      }
+    }
+    // Check if we should negate the result.
+    if (!empty($value['negate'])) {
+      $matches = !$matches;
+    }
+    return $matches;
   }
 
   /**
    * (non-PHPdoc)
    * @see RedirectorComponentInterface::summary()
    */
-  public function summary($values) {
+  public function summary($value) {
     static $options;
     if (!isset($options)) {
       $options = $this->getAvailableOptions();
     }
     $output = $this->getTitle() . ': ';
-    foreach ($values as $key => $value) {
-      $readable_values = array();
-      if (!empty($value['value'])) {
-        if (is_array($value['value'])) {
-          foreach ($value['value'] as $option_value) {
-            if (!empty($options[$key][$option_value])) {
-              $readable_values[$key][] = $options[$key][$option_value];
-            }
-            else {
-              $readable_values[$key][] = $option_value;
-            }
-          }
-        }
-        else {
-          if (!empty($options[$key][$value['value']])) {
-            $readable_values[$key] = $options[$key][$value['value']];
+    $readable_values = array();
+    if (!empty($value['value'])) {
+      if (is_array($value['value'])) {
+        foreach ($value['value'] as $option_value) {
+          if (!empty($options[$option_value])) {
+            $readable_values[] = $options[$option_value];
           }
           else {
-            $readable_values[$key] = $value['value'];
+            $readable_values[] = $option_value;
           }
         }
       }
-      if (!empty($value['negate'])) {
-        $output .= 'NOT ';
-      }
-      if (is_array($readable_values[$key])) {
-        $output .= ' IN (' . implode('; ', $readable_values[$key]) . '); ';
-      }
       else {
-        $output .= $readable_values[$key] . '; ';
+        if (!empty($options[$value['value']])) {
+          $readable_values = $options[$value['value']];
+        }
+        else {
+          $readable_values = $value['value'];
+        }
       }
+    }
+    if (!empty($value['negate'])) {
+      $output .= 'NOT ';
+    }
+    if (is_array($readable_values)) {
+      $output .= ' IN (' . implode('; ', $readable_values) . '); ';
+    }
+    else {
+      $output .= $readable_values . '; ';
     }
     return $output;
   }

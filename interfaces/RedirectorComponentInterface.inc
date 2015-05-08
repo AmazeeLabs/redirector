@@ -12,19 +12,16 @@ interface RedirectorComponentInterface {
    */
   public function getTitle();
 
+
   /**
-   * Returns an array with the name of the columns used to store the data for
-   * this component in the storage (database).
+   * Returns the id of the component.
    */
-  public function getStorageColumns();
+  public function getId();
 
   /**
    * Returns an array with all the options that this component can have.
-   *
-   * This can be used for example on an admin form to show all the values that
-   * this component can have inside a redirector rule.
    */
-  public function getAvailableOptions($column_name = NULL);
+  public function getAvailableOptions();
 
   /**
    * Returns the value of the component, based on the current request.

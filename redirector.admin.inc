@@ -39,36 +39,7 @@ function redirector_admin_components_form() {
 function redirector_admin_components_form_submit(&$form, &$form_state) {
   $components = array_filter($form_state['values']['redirector_components']);
   variable_set('redirector_components', $components);
-  redirector_update_table_fields();
   drupal_set_message(t('The changes have been saved.'));
-}
-
-/**
- * Helper function to update the table fields based on the current active
- * components.
- */
-function redirector_update_table_fields() {
-// For each active components, make sure we have the fields. If not, we add
-  // them now.
-  $components = redirector_get_active_components();
-  $all_components = redirector_get_all_components();
-  // Rebuild the schema, to make sure we have the newest fields.
-  $new_schema = drupal_get_schema('redirector_rules', TRUE);
-  $rule_parts = redirector_rule_parts();
-  foreach ($components as $key => $component_object) {
-    if (!empty($component_object)) {
-      $columns = $component_object->getStorageColumns();
-      // We iterate over each column and check if we already have an column for
-      // it. If not, then we create one now.
-      foreach ($columns as $column_name) {
-        foreach ($rule_parts as $part => $part_values) {
-          if (!db_field_exists('redirector_rules', $part . '_' . $column_name)) {
-            db_add_field('redirector_rules', $part . '_' . $column_name, $new_schema['fields'][$part . '_' . $column_name]);
-          }
-        }
-      }
-    }
-  }
 }
 
 /**
@@ -108,28 +79,27 @@ function redirector_admin_add_edit_rule_form($form, &$form_state, $rule = NULL) 
         '#title' => $part_value['title'],
       );
       foreach ($active_components as $key => $component) {
-        $columns = $component->getStorageColumns();
-        foreach ($columns as $column_name) {
-          $options = $component->getAvailableOptions($column_name);
+          $options = $component->getAvailableOptions();
           if (!empty($options)) {
             $options = array_reverse($options, TRUE);
             $options['--any--'] = t('Any');
             $options = array_reverse($options, TRUE);
           }
-          $rule_form['components'][$part][$part . '_' . $column_name] = array(
+          $rule_form['components'][$part][$part . '_' . $key] = array(
             '#type' => !empty($options) ? 'select' : 'textfield',
-            '#title' => $component->getTitle() . ' - (' . $column_name . ')',
-            '#default_value' => !empty($rule) ? $rule->{$part . '_' . $column_name}['value'] : array('--any--'),
+            '#title' => $component->getTitle(),
+            '#default_value' => !empty($rule) ? $rule->{$part}[$key]['value'] : array('--any--'),
           );
           if (!empty($options)) {
-            $rule_form['components'][$part][$part . '_' . $column_name]['#options'] = $options;
+            $rule_form['components'][$part][$part . '_' . $key]['#options'] = $options;
             // Check if we should show the element as a multiple selection.
             if (!empty($part_value['allow_multiple'])) {
-              $rule_form['components'][$part][$part . '_' . $column_name]['#multiple'] = TRUE;
+              $rule_form['components'][$part][$part . '_' . $key]['#multiple'] = TRUE;
             }
           }
           // Chech if we should show the 'negate' checkbox.
-          // @todo: Not yet tested, but the logic is implemented.
+          // @TODO: to be implemented. We will also have to check some logic
+          // in the components.
           /*if (!empty($part_value['allow_negate'])) {
             $rule_form['components'][$part][$part . '_' . $column_name . '_negate'] = array(
               '#type' => 'checkbox',
@@ -137,7 +107,6 @@ function redirector_admin_add_edit_rule_form($form, &$form_state, $rule = NULL) 
               '#default_value' => !empty($rule) ? $rule->{$part . '_' . $column_name}['negate'] : FALSE,
             );
           }*/
-        }
       }
     }
   }
@@ -181,16 +150,12 @@ function redirector_admin_add_edit_rule_form_submit(&$form, &$form_state) {
   // Add the new values into the object.
   $redirect_rule->title = $form_state['values']['title'];
   $active_components = redirector_get_active_components();
-  foreach ($active_components as $key => $component) {
-    $columns = $component->getStorageColumns();
-    $parts = redirector_rule_parts();
-    foreach ($columns as $column_name) {
-      foreach ($parts as $part => $part_values) {
-        $redirect_rule->{$part . '_' . $column_name}['value'] = $form_state['values'][$part . '_' . $column_name];
-        $redirect_rule->{$part . '_' . $column_name}['negate'] = FALSE;
-        if (!empty($form_state['values'][$part . '_' . $column_name . '_negate'])) {
-          $redirect_rule->{$part . '_' . $column_name}['negate'] = TRUE;
-        }
+  $parts = redirector_rule_parts();
+  foreach ($parts as $part => $part_values) {
+    foreach ($active_components as $key => $component) {
+      $redirect_rule->{$part}[$key]['value'] = $form_state['values'][$part . '_' . $key];
+      if (!empty($form_state['values'][$part . '_' . $key . '_negate'])) {
+        $redirect_rule->{$part}[$key]['negate'] = TRUE;
       }
     }
   }
