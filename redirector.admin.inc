@@ -280,3 +280,22 @@ function redirector_admin_delete_rule_confirm_submit(&$form, &$form_state) {
   drupal_set_message(t('The rule has been deleted.'));
   $form_state['redirect'] = redirector_get_admin_path() . '/rules';
 }
+
+/**
+ * Form constructor for the general settings from.
+ */
+function redirector_admin_form() {
+  $form['redirector_debug_enable'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable debug mode'),
+    '#description' => t('When the debug mode is enabled, the users with <em>See redirector debug</em> permission will be able to see which redirects are being used during a request, as a drupal message.'),
+    '#default_value' => variable_get('redirector_debug_enable', FALSE),
+  );
+  $form['redirector_admin_users_redirect'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Redirect admin users'),
+    '#description' => t('When this is enabled, even the users with <em>Skip redirects</em> permission will be redirected if needed.'),
+    '#default_value' => variable_get('redirector_admin_users_redirect', FALSE),
+  );
+  return system_settings_form($form);
+}

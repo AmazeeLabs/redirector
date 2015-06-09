@@ -26,7 +26,11 @@ function redirector_entity_info() {
 function redirector_permission() {
   return array(
     'skip redirector redirects' => array(
-      'title' => t('Skip Redirects'),
+      'title' => t('Skip redirects'),
+    ),
+    'see redirector debug' => array(
+      'title' => t('See redirector debug'),
+      'description' => t('The users with this permission will be able to see which redirects are being used for a request, using the drupal message system.')
     ),
   );
 }
@@ -50,9 +54,14 @@ function redirector_init() {
   if (drupal_is_cli()) {
     return;
   }
-  // Skip the redirect if the current user is allowed to do so.
+  // Skip the redirect if the current user is allowed to do so. However, only
+  // skip if the 'redirector_admin_users_redirect' setting is not ON, which
+  // means we force the redirect also for admins.
   if (user_access('skip redirector redirects')) {
-    return;
+    $admin_redirect = variable_get('redirector_admin_users_redirect', FALSE);
+    if (empty($admin_redirect)) {
+      return;
+    }
   }
   // @todo: this should be improved as much as possible!
   // @todo: we should split this in more functions if we will need this
@@ -142,6 +151,15 @@ function redirector_rule_redirect($redirect_rule, $components = array()) {
   drupal_add_http_header('X-Redirector-Rule', $redirect_rule->title);
   drupal_add_http_header('X-Redirector-Rule-Condition', implode(' && ', $debug_output));
   drupal_add_http_header('X-Redirector-Rule-Destination', implode(' && ', $debug_output_dest));
+  // If we have the debug mode enabled, and the user has the permission to
+  // see the debug messages, then we show them.
+  $debug_enabled = variable_get('redirector_debug_enable', FALSE);
+  if (!empty($debug_enabled) && user_access('see redirector debug')) {
+    $message = implode('<br/>', array('Redirector Rule: ' . $redirect_rule->title,
+                                      'Rule Condition: ' . implode(' && ', $debug_output),
+                                      'Rule Destination: ' . implode(' && ', $debug_output_dest)));
+    drupal_set_message($message);
+  }
   drupal_goto($url, $options);
 }
 
@@ -165,6 +183,15 @@ function redirector_menu() {
     'page callback' => 'drupal_get_form',
     'page arguments' => array('redirector_admin_components_form'),
     'file' => 'redirector.admin.inc',
+  );
+  $items[$path. '/settings'] = array(
+    'type' => MENU_LOCAL_TASK,
+    'title' => 'Settings',
+    'access arguments' => array('administer site'),
+    'page callback' => 'drupal_get_form',
+    'page arguments' => array('redirector_admin_form'),
+    'file' => 'redirector.admin.inc',
+    'weight' => 10,
   );
   $items[$path . '/rules'] = array(
     'type' => MENU_DEFAULT_LOCAL_TASK,
